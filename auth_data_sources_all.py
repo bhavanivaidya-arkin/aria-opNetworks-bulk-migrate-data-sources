@@ -10,7 +10,7 @@ from itertools import zip_longest
 # Disable SSL certificate verification
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Take user input for the value
+# Take user input -start of script 
 print("\033[1mMIGRATE BULK DATA SOURCES FROM ONE COLLECTOR VM TO ANOTHER \033[0m")
 print ("=============================================================")
 print ("=============================================================\n")
@@ -20,8 +20,6 @@ user_input_old_collector = input("Enter Old Collector VM : ")
 user_input_new_collector = input("Enter New Collector VM : ")
 
 print("\n")
-#old_collector_VM = 'I41370WMY333DJ6QPKQOM546LI'
-#new_collector_VM = 'IEV141I3IFNA8SJDP07FKPP9WJ'
 
 #user_input_old_collector = "Collector_10.220.233.39" #I41370WMY333DJ6QPKQOM546LI
 #user_input_new_collector = "Collector_10.220.235.75" #IEV141I3IFNA8SJDP07FKPP9WJ
@@ -35,12 +33,8 @@ def get_auth_token(api_url, username, password):
         "username": username,
         "password": password
     }
-
     response = requests.post(api_url, json=payload, verify=False)
-    #valueofcsfrToken = response.json().get('csrfToken')
-    #print(valueofcsfrToken)
     if response.status_code == 200:
-        # Update this line based on the actual structure of the response JSON
         token = response.json().get('csrfToken')
         cookie = response.cookies['VRNI-JSESSIONID']
         return token, cookie 
@@ -49,22 +43,18 @@ def get_auth_token(api_url, username, password):
 
 # Function to call the GET API using the authentication token
 def call_get_api(api_url, auth_token,cookie):
-    #print (auth_token)
-    #print (api_url)
     headers = {
         'Content-Type' : 'application/json',
         'x-vrni-csrf-token': auth_token,
         'Cookie': f'VRNI-JSESSIONID={cookie}'
     }
-
     response = requests.get(api_url, headers=headers, verify=False)
-    #print (response.request.headers)
-    #print (response)
     if response.status_code == 200:
         return response.json()
     else:
         return None
-    
+
+# Function to update the data source    
 def call_update_data_source (api_url, auth_token, cookie, obj, data_source, new_collector_VM):
             headers = {
                 'Content-Type' : 'application/json',
@@ -84,17 +74,13 @@ def call_update_data_source (api_url, auth_token, cookie, obj, data_source, new_
                         "value": value
                 }
                 key_values.append(key_value) 
-                #print(key_values)               
             payload = {
                  "dataSource" : data_source,
                  "keyValueList" : key_values 
             }
             json_payload = json.dumps(payload)
-            #print(json_payload)
             if json_payload is not None:
-                #print ("hello from the other side")
                 response = requests.post(api_url, headers=headers, json=payload, verify=False)  
-                #print(response) 
                 if response.status_code == 200:
                     return response.json
                 else :
@@ -102,6 +88,7 @@ def call_update_data_source (api_url, auth_token, cookie, obj, data_source, new_
             else:
                 return None
 
+# Function to create the data source csv file
 def create_csv(data):
     data_source_csvfilename = None
     key_to_check_subtype = 'DS_SUB_TYPE'
@@ -177,15 +164,12 @@ def create_csv(data):
     # Write the data to the CSV file
     with open(csv_file, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        #if newkey_flag:
-            #print ("I'll be watching you",keys_to_write)
-            #writer.writerow(keys_to_write)  # Write the keys as header row if it doesn't exist
         writer.writerow(values_to_write)  # Write the corresponding values on the next row
 
     print(f"CSV file '{csv_file}' updated successfully!")
     return data_source_csvfilename, org_dataSource
 
-# Create update request from CSV
+# Function to create update data source request for API
 def form_datasource_update_request(data_source):
     keys_to_skip = ['lastModifiedTimestamp','lastActivityTimestamp','lastConfigActivityTimestamp',
                 'thumb.print','healthErrorCode' , 'healthError','healthStatus', 
@@ -198,21 +182,15 @@ def form_datasource_update_request(data_source):
         # Skip the keys to be skipped
         filtered_row = {key: value for key, value in row.items() if key not in keys_to_skip}
         
-            # Create payload
+        # Create payload
         for key, value in filtered_row.items():
             payload_keyvalueList[key] = value  
-        #payload = {
-         #    "dataSource" : data_source,
-          #   "keyValueList" : payload_keyvalueList 
-        #}
-        #print ("The Payload after removing certain key value pairs for data source",data_source)
-        #print(payload_keyvalueList)
         if payload_keyvalueList is not None:
                 return payload_keyvalueList
         else:
                 return None
 
-
+# Function to update the passwords in the CSV files
 def write_to_specific_header(file_path, pwd_header_array, data_to_write):
     # Check if the CSV file exists
     if not os.path.isfile(file_path):
@@ -264,7 +242,6 @@ if __name__ == '__main__':
     apiValue1 = config.get("API", "datasourceALL")
     updateDataSource = config.get("API", "updateDataSourceURL")
     getCollectorIDURL = config.get("API", "getCollectorIDURL")
-   # print (apiValue, apiValue1)
 
     # API URLs
     private_api_url = f"https://{ip_address}:{port}/{apiValue}"
@@ -272,7 +249,6 @@ if __name__ == '__main__':
     update_Data_source_url = f"https://{ip_address}:{port}/{updateDataSource}"
     getCollectorID_api_url = f"https://{ip_address}:{port}/{getCollectorIDURL}"
 
-    #print(private_api_url)
     # Credentials for the private API
     username = config.get("API","username")
     password = config.get("API","password")
@@ -290,17 +266,13 @@ if __name__ == '__main__':
 
         #Call the GET API to get nodeID from user input of collector name
         collectorid_response = call_get_api(getCollectorID_api_url, auth_token, cookie)
-        #print (collectorid_response)
         for item in collectorid_response:
                   nameCollector = item['name']
                   if (nameCollector == user_input_old_collector):
                         old_collector_VM = item['nodeId']       
                   elif (nameCollector == user_input_new_collector):
                        new_collector_VM = item['nodeId'] 
-                       
-        #print(old_collector_VM)
-        #print(new_collector_VM)
-
+       
         # Call the GET API for fetching data sources using the authentication token
         response = call_get_api(getDataSouces_api_url, auth_token,cookie)   
         #print (response)
@@ -352,9 +324,7 @@ if __name__ == '__main__':
             print ("You will have to update them manually", "\n")   
         
         user_input = input("Have you reviewed/update CSV files manually ? (yes/no): ")
-        #userinput =1
         if user_input == "yes":  
-            #print (datasource_array)  
             for data_source_response in datasource_array:
                 filename = data_source_response + ".csv"   
                 with open(filename, "r") as file:
@@ -364,19 +334,12 @@ if __name__ == '__main__':
                         parts = org_datasource.split('_')
                         data_source = parts[0]
                         new_payload = form_datasource_update_request(data_source_response)
-                        #print(new_payload)
                         print ("Migrating Data Source ",host, "of Type", data_source_response)
-                        #for obj in (new_payload.items()):
-
-                        #print (data_source)
                         response = call_update_data_source(update_Data_source_url, auth_token, cookie, new_payload, data_source,new_collector_VM)
-                        #print (response)
-                        #    response =2
                     if response:
                          # Process the response from the GET API
                         print("Migration Completed for", host)
                         print("\n")
-                        #print('Error: Failed to retrieve data from the GET API.')     
                     else:
                         print("Migration Failed")    
         if user_input == "no" :
