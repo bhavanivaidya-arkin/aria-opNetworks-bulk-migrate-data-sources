@@ -41,4 +41,4 @@ python3 auth_data_sources_all.py
 
 ## Contact
 
-@bhavanivaidya-arkin started this project and will keep maintaining it. Reach out to me via Issues Page here on GitHub. If you want to contribute, also get in touch with me.
+@bhavanivaidya-arkin started this project. Reach out to me via Issues Page here on GitHub. If you want to contribute, also get in touch with me.
